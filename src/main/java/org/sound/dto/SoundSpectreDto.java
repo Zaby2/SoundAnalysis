@@ -8,6 +8,6 @@ import java.util.List;
 @Data
 public class SoundSpectreDto {
 
-    List<PitchDetectorServiceImpl.FrequencyBin> file1Fq;
-    List<PitchDetectorServiceImpl.FrequencyBin> file2Fq;
+    private List<PitchDetectorServiceImpl.FrequencyBin> file1Fq;
+    private List<PitchDetectorServiceImpl.FrequencyBin> file2Fq;
 }
