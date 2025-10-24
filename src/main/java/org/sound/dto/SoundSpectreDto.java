@@ -6,7 +6,7 @@ import org.sound.service.impl.PitchDetectorServiceImpl;
 import java.util.List;
 
 @Data
-public class SoundSettingsDto {
+public class SoundSpectreDto {
 
     List<PitchDetectorServiceImpl.FrequencyBin> file1Fq;
     List<PitchDetectorServiceImpl.FrequencyBin> file2Fq;
