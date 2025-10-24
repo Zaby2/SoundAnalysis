@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.sound.exception.InternalSoundAnalysisException;
 import org.sound.service.PitchDetectorService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,16 +29,10 @@ public class PitchDetectorServiceImpl implements PitchDetectorService {
         File tmpFile;
         try {
             tmpFile = File.createTempFile("audio", ".wav");
-        } catch (IOException e) {
-            log.error("Ошибка создания временного файла");
-            throw new RuntimeException(e);
-        }
-
-        try {
             wavFile.transferTo(tmpFile);
         } catch (IOException e) {
-            log.error("Ошибка трансфера во временный файла");
-            throw new RuntimeException(e);
+            log.error("Ошибка создания временного файла");
+            throw new InternalSoundAnalysisException(e.getMessage());
         }
 
         final double[] frequency = {0.0};
@@ -64,11 +59,16 @@ public class PitchDetectorServiceImpl implements PitchDetectorService {
         return frequency[0];
     }
 
-    @SneakyThrows
     @Override
     public List<FrequencyBin> analyzeSpectrum(MultipartFile wavFile) {
-        var tempFile = File.createTempFile("spectrum", ".wav");
-        wavFile.transferTo(tempFile);
+        File tmpFile;
+        try {
+            tmpFile = File.createTempFile("spectrum", ".wav");
+            wavFile.transferTo(tmpFile);
+        } catch (IOException e) {
+            log.error("Ошибка создания временного файла");
+            throw new InternalSoundAnalysisException(e.getMessage());
+        }
 
         var sampleRate = 44100;
         var bufferSize = 1024;
@@ -77,7 +77,7 @@ public class PitchDetectorServiceImpl implements PitchDetectorService {
         var spectrum = new ArrayList<FrequencyBin>();
 
         var dispatcher = AudioDispatcherFactory.fromPipe(
-                tempFile.getAbsolutePath(), sampleRate, bufferSize, overlap);
+                tmpFile.getAbsolutePath(), sampleRate, bufferSize, overlap);
 
         dispatcher.addAudioProcessor(new AudioProcessor() {
             FFT fft = new FFT(bufferSize);
@@ -94,21 +94,17 @@ public class PitchDetectorServiceImpl implements PitchDetectorService {
                     double freq = i * (sampleRate / (double) bufferSize);
                     double db = 20 * Math.log10(amplitudes[i] + 1e-8);
                     spectrum.add(new FrequencyBin(freq, db));
-
                 }
                 return true;
             }
 
             @Override
             public void processingFinished() {
-
             }
         });
 
         dispatcher.run();
-
-        tempFile.delete();
-
+        tmpFile.delete();
         return spectrum;
     }
 
